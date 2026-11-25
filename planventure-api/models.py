@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
 
-from werkzeug.security import check_password_hash, generate_password_hash
-
 from extensions import db
+from security import hash_password, verify_password
 
 
 def utcnow():
@@ -25,10 +24,10 @@ class User(db.Model):
     )
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = hash_password(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return verify_password(self.password_hash, password)
 
     def to_dict(self):
         return {
