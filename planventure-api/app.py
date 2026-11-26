@@ -25,7 +25,16 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(
         days=int(os.getenv("JWT_REFRESH_DAYS", "30"))
     )
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    CORS_ORIGINS = [
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS", "http://localhost:3000,http://localhost:5173"
+        ).split(",")
+        if origin.strip()
+    ]
+    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization"]
+    CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    CORS_MAX_AGE = 600
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
 
@@ -35,11 +44,24 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}})
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": app.config["CORS_ORIGINS"],
+                "methods": app.config["CORS_METHODS"],
+                "allow_headers": app.config["CORS_ALLOW_HEADERS"],
+                "max_age": app.config["CORS_MAX_AGE"],
+            }
+        },
+        supports_credentials=False,
+    )
 
     from auth_routes import auth_bp
+    from trip_routes import trips_bp
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(trips_bp)
 
     @app.route("/")
     def home():
